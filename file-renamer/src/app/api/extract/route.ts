@@ -38,82 +38,130 @@ async function extractTextContent(buffer: Buffer): Promise<string> {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { files } = body as {
-      files: Array<{
-        id: string;
-        blobUrl: string;
-        originalName: string;
-        mimeType: string;
-        size: number;
-      }>;
-    };
+    const contentType = req.headers.get('content-type') || '';
 
-    if (!files || files.length === 0) {
-      return NextResponse.json({ error: 'No files provided' }, { status: 400 });
-    }
+    // Hybrid approach: Handle both FormData (small files) and JSON (large files with blob URLs)
+    if (contentType.includes('multipart/form-data')) {
+      // Original approach for small files (<4.5MB)
+      const formData = await req.formData();
+      const files = formData.getAll('files') as File[];
 
-    const results: ExtractedData[] = [];
+      if (!files || files.length === 0) {
+        return NextResponse.json({ error: 'No files provided' }, { status: 400 });
+      }
 
-    for (const file of files) {
-      try {
-        // Fetch file from Vercel Blob
-        const response = await fetch(file.blobUrl);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch blob: ${response.statusText}`);
-        }
+      const results: ExtractedData[] = [];
 
-        const buffer = Buffer.from(await response.arrayBuffer());
+      for (const file of files) {
+        const id = formData.get(`id_${file.name}`)?.toString() || crypto.randomUUID();
+        const buffer = Buffer.from(await file.arrayBuffer());
         let snippet = '';
 
         // Route by MIME type
-        if (file.mimeType === 'application/pdf') {
+        if (file.type === 'application/pdf') {
           snippet = await extractPdfText(buffer);
         } else if (
-          file.mimeType ===
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-          file.mimeType === 'application/msword'
+          file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+          file.type === 'application/msword'
         ) {
           snippet = await extractDocxText(buffer);
-        } else if (file.mimeType.startsWith('text/')) {
+        } else if (file.type.startsWith('text/')) {
           snippet = await extractTextContent(buffer);
-        } else if (file.mimeType.startsWith('image/')) {
-          // For images, we'll handle OCR/vision in the propose route
-          snippet = `[Image file: ${file.originalName}, type: ${file.mimeType}]`;
-        } else if (file.mimeType.startsWith('audio/')) {
-          // For audio, we'll handle transcription in the propose route
-          snippet = `[Audio file: ${file.originalName}, type: ${file.mimeType}]`;
+        } else if (file.type.startsWith('image/')) {
+          snippet = `[Image file: ${file.name}, type: ${file.type}]`;
+        } else if (file.type.startsWith('audio/')) {
+          snippet = `[Audio file: ${file.name}, type: ${file.type}]`;
         } else {
-          // Unknown type - use filename and basic metadata
-          snippet = `[File: ${file.originalName}, type: ${file.mimeType}, size: ${file.size} bytes]`;
+          snippet = `[File: ${file.name}, type: ${file.type}, size: ${file.size} bytes]`;
         }
 
-        // Truncate snippet to first 3000 chars
+        // Truncate snippet
         if (snippet.length > 3000) {
           snippet = snippet.slice(0, 3000) + '...';
         }
 
         results.push({
-          id: file.id,
+          id,
           snippet,
-          blobUrl: file.blobUrl,
-          metadata: {
-            // No lastModified from blob, but we can add other metadata if needed
-          },
-        });
-      } catch (error) {
-        console.error(`Failed to process file ${file.originalName}:`, error);
-        // Add a minimal result so we don't fail the entire batch
-        results.push({
-          id: file.id,
-          snippet: `[Error processing file: ${file.originalName}]`,
-          blobUrl: file.blobUrl,
+          blobUrl: '', // No blob URL for small files
           metadata: {},
         });
       }
-    }
 
-    return NextResponse.json({ results });
+      return NextResponse.json({ results });
+    } else {
+      // JSON approach for large files with blob URLs (>=4.5MB)
+      const body = await req.json();
+      const { files } = body as {
+        files: Array<{
+          id: string;
+          blobUrl: string;
+          originalName: string;
+          mimeType: string;
+          size: number;
+        }>;
+      };
+
+      if (!files || files.length === 0) {
+        return NextResponse.json({ error: 'No files provided' }, { status: 400 });
+      }
+
+      const results: ExtractedData[] = [];
+
+      for (const file of files) {
+        try {
+          // Fetch file from Vercel Blob
+          const response = await fetch(file.blobUrl);
+          if (!response.ok) {
+            throw new Error(`Failed to fetch blob: ${response.statusText}`);
+          }
+
+          const buffer = Buffer.from(await response.arrayBuffer());
+          let snippet = '';
+
+          // Route by MIME type
+          if (file.mimeType === 'application/pdf') {
+            snippet = await extractPdfText(buffer);
+          } else if (
+            file.mimeType ===
+              'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+            file.mimeType === 'application/msword'
+          ) {
+            snippet = await extractDocxText(buffer);
+          } else if (file.mimeType.startsWith('text/')) {
+            snippet = await extractTextContent(buffer);
+          } else if (file.mimeType.startsWith('image/')) {
+            snippet = `[Image file: ${file.originalName}, type: ${file.mimeType}]`;
+          } else if (file.mimeType.startsWith('audio/')) {
+            snippet = `[Audio file: ${file.originalName}, type: ${file.mimeType}]`;
+          } else {
+            snippet = `[File: ${file.originalName}, type: ${file.mimeType}, size: ${file.size} bytes]`;
+          }
+
+          // Truncate snippet
+          if (snippet.length > 3000) {
+            snippet = snippet.slice(0, 3000) + '...';
+          }
+
+          results.push({
+            id: file.id,
+            snippet,
+            blobUrl: file.blobUrl,
+            metadata: {},
+          });
+        } catch (error) {
+          console.error(`Failed to process file ${file.originalName}:`, error);
+          results.push({
+            id: file.id,
+            snippet: `[Error processing file: ${file.originalName}]`,
+            blobUrl: file.blobUrl,
+            metadata: {},
+          });
+        }
+      }
+
+      return NextResponse.json({ results });
+    }
   } catch (error) {
     console.error('Extract API error:', error);
     return NextResponse.json(

@@ -5,7 +5,7 @@ import { FileDropzone } from './file-dropzone';
 import { FilePreviewTable } from './file-preview-table';
 import type { FileItem, ProposedFile, ExtractedData } from '@/types/renamer';
 import { Button } from './ui/button';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles, X, FileIcon } from 'lucide-react';
 import { estimateTokens } from '@/lib/filename-utils';
 
 export function FileRenamer() {
@@ -29,20 +29,39 @@ export function FileRenamer() {
     setError(null);
 
     try {
-      // Send blob URLs to API for extraction (no more FormData!)
-      const fileData = files.map((file) => ({
-        id: file.id,
-        blobUrl: file.blobUrl,
-        originalName: file.originalName,
-        mimeType: file.mimeType,
-        size: file.size,
-      }));
+      // Check if any file uses blob (large files)
+      const hasLargeFiles = files.some((f) => f.blobUrl);
 
-      const response = await fetch('/api/extract', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ files: fileData }),
-      });
+      let response;
+
+      if (hasLargeFiles) {
+        // Use JSON for files with blob URLs (>=4.5MB)
+        const fileData = files.map((file) => ({
+          id: file.id,
+          blobUrl: file.blobUrl,
+          originalName: file.originalName,
+          mimeType: file.mimeType,
+          size: file.size,
+        }));
+
+        response = await fetch('/api/extract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ files: fileData }),
+        });
+      } else {
+        // Use FormData for small files (<4.5MB) - original approach
+        const formData = new FormData();
+        for (const file of files) {
+          formData.append('files', file.file);
+          formData.append(`id_${file.file.name}`, file.id);
+        }
+
+        response = await fetch('/api/extract', {
+          method: 'POST',
+          body: formData,
+        });
+      }
 
       if (!response.ok) {
         throw new Error('Failed to extract file content');
@@ -134,33 +153,74 @@ export function FileRenamer() {
     setError(null);
 
     try {
-      // Send blob URLs to API (no more base64 conversion!)
-      const filesData = selectedFiles.map((file) => ({
-        originalName: file.originalName,
-        finalName: file.finalName,
-        blobUrl: file.blobUrl,
-      }));
+      // Check if any file uses blob (large files)
+      const hasLargeFiles = selectedFiles.some((f) => f.blobUrl);
 
-      const response = await fetch('/api/zip', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ files: filesData }),
-      });
+      if (hasLargeFiles) {
+        // Use blob URLs for large files
+        const filesData = selectedFiles.map((file) => ({
+          originalName: file.originalName,
+          finalName: file.finalName,
+          blobUrl: file.blobUrl,
+        }));
 
-      if (!response.ok) {
-        throw new Error('Failed to generate ZIP');
+        const response = await fetch('/api/zip', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ files: filesData }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to generate ZIP');
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `renamed-files-${Date.now()}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else {
+        // Use base64 for small files (original approach)
+        const filesData = await Promise.all(
+          selectedFiles.map(async (file) => {
+            const base64 = await new Promise<string>((resolve) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(file.file);
+            });
+
+            return {
+              originalName: file.originalName,
+              finalName: file.finalName,
+              data: base64,
+            };
+          }),
+        );
+
+        const response = await fetch('/api/zip', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ files: filesData }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to generate ZIP');
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `renamed-files-${Date.now()}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
       }
-
-      // Download the ZIP
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `renamed-files-${Date.now()}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
     } catch (err) {
       console.error('Download error:', err);
       setError(err instanceof Error ? err.message : 'Failed to download ZIP');
@@ -229,6 +289,11 @@ export function FileRenamer() {
     setError(null);
   };
 
+  const handleRemoveFile = (id: string) => {
+    setFiles((prev) => prev.filter((f) => f.id !== id));
+    setError(null);
+  };
+
   const isProcessing = isExtracting || isProposing || isDownloading;
 
   return (
@@ -268,6 +333,36 @@ export function FileRenamer() {
             <Button variant="outline" size="sm" onClick={handleClear} disabled={isProcessing}>
               Clear All
             </Button>
+          </div>
+
+          {/* File List with Delete Buttons */}
+          <div className="relative z-10 space-y-2">
+            {files.map((file) => (
+              <div
+                key={file.id}
+                className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card/80 backdrop-blur-sm"
+              >
+                <FileIcon className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {file.originalName}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {(file.size / 1024 / 1024).toFixed(2)} MB
+                    {file.blobUrl && ' • Stored in cloud'}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleRemoveFile(file.id)}
+                  disabled={isProcessing}
+                  className="flex-shrink-0 h-8 w-8 text-muted-foreground hover:text-destructive"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
           </div>
 
           {proposedFiles.length === 0 ? (

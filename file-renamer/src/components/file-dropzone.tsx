@@ -16,22 +16,30 @@ export function FileDropzone({ onFilesAdded, disabled = false }: FileDropzonePro
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
 
+  // 4.5MB threshold - use blob for larger files only
+  const BLOB_THRESHOLD = 4.5 * 1024 * 1024; // 4.5MB in bytes
+
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
       setIsUploading(true);
       setUploadProgress({});
 
       try {
-        // Upload all files to Vercel Blob
+        // Smart hybrid approach: blob only for large files
         const fileItems: FileItem[] = await Promise.all(
           acceptedFiles.map(async (file) => {
             try {
-              const blobUrl = await uploadFileToBlob(file, (progress) => {
-                setUploadProgress((prev) => ({
-                  ...prev,
-                  [file.name]: progress.percentage,
-                }));
-              });
+              let blobUrl = '';
+
+              // Only use Vercel Blob for files >= 4.5MB
+              if (file.size >= BLOB_THRESHOLD) {
+                blobUrl = await uploadFileToBlob(file, (progress) => {
+                  setUploadProgress((prev) => ({
+                    ...prev,
+                    [file.name]: progress.percentage,
+                  }));
+                });
+              }
 
               return {
                 id: crypto.randomUUID(),
@@ -40,10 +48,10 @@ export function FileDropzone({ onFilesAdded, disabled = false }: FileDropzonePro
                 mimeType: file.type,
                 size: file.size,
                 file,
-                blobUrl,
+                blobUrl, // Empty string for small files, URL for large files
               };
             } catch (error) {
-              console.error(`Failed to upload ${file.name}:`, error);
+              console.error(`Failed to process ${file.name}:`, error);
               throw error;
             }
           }),
@@ -60,7 +68,7 @@ export function FileDropzone({ onFilesAdded, disabled = false }: FileDropzonePro
         setIsUploading(false);
       }
     },
-    [onFilesAdded],
+    [onFilesAdded, BLOB_THRESHOLD],
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
