@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PDFParse } from 'pdf-parse';
+// import { PDFParse } from 'pdf-parse';
 import mammoth from 'mammoth';
 import type { ExtractedData } from '@/types/renamer';
 
@@ -7,15 +7,8 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
-  try {
-    const parser = new PDFParse({ data: buffer });
-    const result = await parser.getText();
-    await parser.destroy();
-    return result.text;
-  } catch (error) {
-    console.error('PDF extraction error:', error);
-    return '';
-  }
+  // PDFParse causes DOMMatrix error on Vercel - disabled
+  return '';
 }
 
 async function extractDocxText(buffer: Buffer): Promise<string> {
