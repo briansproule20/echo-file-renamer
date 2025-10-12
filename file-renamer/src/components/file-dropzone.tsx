@@ -5,7 +5,7 @@ import { useDropzone } from 'react-dropzone';
 import { Upload, FileIcon, Loader2 } from 'lucide-react';
 import type { FileItem } from '@/types/renamer';
 import { getExtension } from '@/lib/filename-utils';
-import { uploadFileToBlob } from '@/lib/blob-upload';
+import { prepareFilesForUpload } from '@/lib/upload-helper';
 
 interface FileDropzoneProps {
   onFilesAdded: (files: FileItem[]) => void;
@@ -16,46 +16,30 @@ export function FileDropzone({ onFilesAdded, disabled = false }: FileDropzonePro
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
 
-  // 4.5MB threshold - use blob for larger files only
-  const BLOB_THRESHOLD = 4.5 * 1024 * 1024; // 4.5MB in bytes
-
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
       setIsUploading(true);
       setUploadProgress({});
 
       try {
-        // Smart hybrid approach: blob only for large files
-        const fileItems: FileItem[] = await Promise.all(
-          acceptedFiles.map(async (file) => {
-            try {
-              let blobUrl = '';
+        // Prepare files (automatically uses blob for large files)
+        await prepareFilesForUpload(acceptedFiles, (fileName, percentage) => {
+          setUploadProgress((prev) => ({
+            ...prev,
+            [fileName]: percentage,
+          }));
+        });
 
-              // Only use Vercel Blob for files >= 4.5MB
-              if (file.size >= BLOB_THRESHOLD) {
-                blobUrl = await uploadFileToBlob(file, (progress) => {
-                  setUploadProgress((prev) => ({
-                    ...prev,
-                    [file.name]: progress.percentage,
-                  }));
-                });
-              }
-
-              return {
-                id: crypto.randomUUID(),
-                originalName: file.name,
-                extension: getExtension(file.name),
-                mimeType: file.type,
-                size: file.size,
-                file,
-                blobUrl, // Empty string for small files, URL for large files
-              };
-            } catch (error) {
-              console.error(`Failed to process ${file.name}:`, error);
-              throw error;
-            }
-          }),
-        );
+        // Create FileItems from accepted files
+        const fileItems: FileItem[] = acceptedFiles.map((file) => ({
+          id: crypto.randomUUID(),
+          originalName: file.name,
+          extension: getExtension(file.name),
+          mimeType: file.type,
+          size: file.size,
+          file,
+          blobUrl: '', // Not needed in FileItem anymore - handled by FormData
+        }));
 
         onFilesAdded(fileItems);
         setUploadProgress({});
@@ -68,7 +52,7 @@ export function FileDropzone({ onFilesAdded, disabled = false }: FileDropzonePro
         setIsUploading(false);
       }
     },
-    [onFilesAdded, BLOB_THRESHOLD],
+    [onFilesAdded],
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({

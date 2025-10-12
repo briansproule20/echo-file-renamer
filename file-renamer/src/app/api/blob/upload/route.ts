@@ -1,53 +1,49 @@
 import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function POST(request: Request): Promise<NextResponse> {
-  const body = (await request.json()) as HandleUploadBody;
+export const maxDuration = 60;
 
+// This route provides upload tokens for client-side uploads to Vercel Blob
+// This avoids the 413 error by uploading directly from the client to blob storage
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    const body = (await request.json()) as HandleUploadBody;
+
     const jsonResponse = await handleUpload({
       body,
       request,
       onBeforeGenerateToken: async (pathname) => {
-        // Validate file types
-        const allowedTypes = [
-          'application/pdf',
-          'image/png',
-          'image/jpeg',
-          'image/jpg',
-          'image/gif',
-          'image/webp',
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
-          'application/msword', // .doc
-          'text/plain',
-          'audio/mpeg',
-          'audio/wav',
-          'audio/mp3',
-          'application/zip',
-          'application/x-zip-compressed',
-        ];
+        console.log(`Generating upload token for: ${pathname}`);
 
         return {
-          allowedContentTypes: allowedTypes,
+          allowedContentTypes: [
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'text/plain',
+            'image/png',
+            'image/jpeg',
+            'image/jpg',
+            'image/webp',
+            'audio/mpeg',
+            'audio/wav',
+            'application/zip',
+          ],
           maximumSizeInBytes: 500 * 1024 * 1024, // 500MB per file
           tokenPayload: JSON.stringify({
             uploadedAt: new Date().toISOString(),
           }),
         };
       },
-      onUploadCompleted: async ({ blob, tokenPayload }) => {
-        // Optional: Log successful upload
-        console.log('Blob upload completed:', blob.pathname);
+      onUploadCompleted: async ({ blob }) => {
+        console.log('Upload completed:', blob.pathname);
       },
     });
 
     return NextResponse.json(jsonResponse);
   } catch (error) {
-    console.error('Blob upload error:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Upload failed' },
-      { status: 400 },
-    );
+    console.error('Blob upload token error:', error);
+    return NextResponse.json({ error: 'Failed to generate upload token' }, { status: 500 });
   }
 }
 

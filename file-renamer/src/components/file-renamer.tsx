@@ -7,6 +7,7 @@ import type { FileItem, ProposedFile, ExtractedData } from '@/types/renamer';
 import { Button } from './ui/button';
 import { Loader2, Sparkles, X, FileIcon } from 'lucide-react';
 import { estimateTokens } from '@/lib/filename-utils';
+import { prepareFilesForUpload } from '@/lib/upload-helper';
 
 export function FileRenamer() {
   const [files, setFiles] = useState<FileItem[]>([]);
@@ -29,39 +30,18 @@ export function FileRenamer() {
     setError(null);
 
     try {
-      // Check if any file uses blob (large files)
-      const hasLargeFiles = files.some((f) => f.blobUrl);
+      // Prepare FormData using case-study pattern (handles small/large files transparently)
+      const formData = await prepareFilesForUpload(files.map((f) => f.file));
 
-      let response;
+      // Add file IDs
+      files.forEach((file, i) => {
+        formData.append(`id-${i}`, file.id);
+      });
 
-      if (hasLargeFiles) {
-        // Use JSON for files with blob URLs (>=4.5MB)
-        const fileData = files.map((file) => ({
-          id: file.id,
-          blobUrl: file.blobUrl,
-          originalName: file.originalName,
-          mimeType: file.mimeType,
-          size: file.size,
-        }));
-
-        response = await fetch('/api/extract', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ files: fileData }),
-        });
-      } else {
-        // Use FormData for small files (<4.5MB) - original approach
-        const formData = new FormData();
-        for (const file of files) {
-          formData.append('files', file.file);
-          formData.append(`id_${file.file.name}`, file.id);
-        }
-
-        response = await fetch('/api/extract', {
-          method: 'POST',
-          body: formData,
-        });
-      }
+      const response = await fetch('/api/extract', {
+        method: 'POST',
+        body: formData,
+      });
 
       if (!response.ok) {
         throw new Error('Failed to extract file content');
