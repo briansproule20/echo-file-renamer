@@ -115,10 +115,10 @@ export function FilePreviewTable({
         </div>
       </div>
 
-      <div className="border border-border rounded-lg overflow-hidden bg-card">
+      <div className="border border-border rounded-lg overflow-hidden bg-card/80 backdrop-blur-sm">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-muted">
+            <thead className="bg-muted/80 backdrop-blur-sm">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Include
@@ -140,7 +140,7 @@ export function FilePreviewTable({
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-card divide-y divide-border">
+            <tbody className="bg-card/70 backdrop-blur-sm divide-y divide-border">
               {files.map((file) => (
                 <tr
                   key={file.id}

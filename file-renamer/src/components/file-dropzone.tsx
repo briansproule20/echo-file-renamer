@@ -51,10 +51,10 @@ export function FileDropzone({ onFilesAdded, disabled = false }: FileDropzonePro
       {...getRootProps()}
       className={`
         border-2 border-dashed rounded-lg p-12 text-center cursor-pointer
-        transition-colors duration-200 bg-card
+        transition-colors duration-200 bg-card/80 backdrop-blur-sm
         ${
           isDragActive
-            ? 'border-primary bg-primary/5'
+            ? 'border-primary bg-primary/10'
             : 'border-border hover:border-primary/50'
         }
         ${disabled ? 'opacity-50 cursor-not-allowed' : ''}

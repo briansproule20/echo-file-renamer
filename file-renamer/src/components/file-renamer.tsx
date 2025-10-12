@@ -262,9 +262,10 @@ export function FileRenamer() {
   const isProcessing = isExtracting || isProposing || isDownloading;
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-6">
-      <div className="space-y-2">
-        <h1 className="font-bold text-3xl text-foreground">Echo Renamer</h1>
+    <div className="relative w-full max-w-7xl mx-auto space-y-4 md:space-y-6">
+
+      <div className="space-y-2 relative z-10">
+        <h1 className="font-bold text-3xl text-foreground">Echo File Renamer</h1>
         <p className="text-muted-foreground">
           AI-powered bulk file renaming. Upload files, get smart suggestions, and download
           renamed files.
@@ -272,15 +273,17 @@ export function FileRenamer() {
       </div>
 
       {error && (
-        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+        <div className="relative z-10 bg-destructive/10 border border-destructive/20 rounded-lg p-4">
           <p className="text-destructive text-sm font-medium">{error}</p>
         </div>
       )}
 
       {files.length === 0 ? (
-        <FileDropzone onFilesAdded={handleFilesAdded} disabled={isProcessing} />
+        <div className="relative z-10">
+          <FileDropzone onFilesAdded={handleFilesAdded} disabled={isProcessing} />
+        </div>
       ) : (
-        <div className="space-y-4">
+        <div className="relative z-10 space-y-4">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-2">
               <p className="text-sm text-foreground font-medium">
@@ -298,7 +301,7 @@ export function FileRenamer() {
           </div>
 
           {proposedFiles.length === 0 ? (
-            <div className="border border-border rounded-lg p-8 text-center bg-card">
+            <div className="border border-border rounded-lg p-8 text-center bg-card/80 backdrop-blur-sm">
               <Sparkles className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="font-semibold text-lg text-foreground mb-2">
                 Ready to rename

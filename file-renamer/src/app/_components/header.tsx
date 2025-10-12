@@ -17,14 +17,14 @@ const Header: FC<HeaderProps> = async ({
 
   return (
     <header
-      className={`border-b bg-background shadow-sm ${className}`}
+      className={`border-b bg-background/80 backdrop-blur-md shadow-sm ${className}`}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-3">
             <Image
               src="/icon.png"
-              alt="Echo Renamer"
+              alt="Echo File Renamer"
               width={32}
               height={32}
               className="rounded-lg"
