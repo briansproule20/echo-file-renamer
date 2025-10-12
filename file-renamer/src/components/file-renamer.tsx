@@ -90,18 +90,37 @@ export function FileRenamer() {
     setError(null);
 
     try {
-      // Prepare items for proposal with blob URLs
-      const items = files.map((file) => {
-        const extracted = extractedData.find((e) => e.id === file.id);
-        return {
-          id: file.id,
-          originalName: file.originalName,
-          mimeType: file.mimeType,
-          snippet: extracted?.snippet || '',
-          dateCandidate: extracted?.metadata.dateCandidate,
-          blobUrl: file.blobUrl, // Pass blob URL instead of base64
-        };
-      });
+      // Prepare items for proposal - convert small images to base64
+      const items = await Promise.all(
+        files.map(async (file) => {
+          const extracted = extractedData.find((e) => e.id === file.id);
+          let imageData = file.blobUrl;
+
+          // For small images without blob URL, convert to base64
+          if (file.mimeType.startsWith('image/') && !file.blobUrl) {
+            try {
+              const reader = new FileReader();
+              const base64 = await new Promise<string>((resolve, reject) => {
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(file.file);
+              });
+              imageData = base64;
+            } catch (error) {
+              console.error('Failed to convert image to base64:', error);
+            }
+          }
+
+          return {
+            id: file.id,
+            originalName: file.originalName,
+            mimeType: file.mimeType,
+            snippet: extracted?.snippet || '',
+            dateCandidate: extracted?.metadata.dateCandidate,
+            blobUrl: imageData, // Pass blob URL or base64 data URL
+          };
+        }),
+      );
 
       const response = await fetch('/api/propose', {
         method: 'POST',
