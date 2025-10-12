@@ -1,15 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-// import { PDFParse } from 'pdf-parse';
 import mammoth from 'mammoth';
 import type { ExtractedData } from '@/types/renamer';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-async function extractPdfText(buffer: Buffer): Promise<string> {
-  // PDFParse causes DOMMatrix error on Vercel - disabled
-  return '';
-}
 
 async function extractDocxText(buffer: Buffer): Promise<string> {
   try {
@@ -76,7 +70,7 @@ export async function POST(req: NextRequest) {
 
       // Route by MIME type
       if (mimeType === 'application/pdf') {
-        snippet = await extractPdfText(buffer);
+        snippet = ''; // PDF parsing removed
       } else if (
         mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
         mimeType === 'application/msword'
