@@ -4,6 +4,7 @@ import mammoth from 'mammoth';
 import type { ExtractedData } from '@/types/renamer';
 import { extractFilesFromFormData } from '@/lib/upload-helper';
 
+export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 async function extractPdfText(buffer: Buffer): Promise<string> {
