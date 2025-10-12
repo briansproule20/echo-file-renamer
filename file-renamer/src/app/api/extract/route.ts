@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     const contentType = req.headers.get('content-type') || '';
 
     // Hybrid approach: Handle both FormData (small files) and JSON (large files with blob URLs)
-    if (contentType.includes('multipart/form-data')) {
+    if (contentType.includes('multipart/form-data') || contentType.includes('form-data')) {
       // Original approach for small files (<4.5MB)
       const formData = await req.formData();
       const files = formData.getAll('files') as File[];
