@@ -35,18 +35,25 @@ export async function POST(req: NextRequest) {
     for (const item of items) {
       let snippet = item.snippet;
 
-      // Handle images with vision model by fetching from blob URL
-      if (item.mimeType.startsWith('image/')) {
+      // Handle images with vision model - ALWAYS run vision on images
+      if (item.mimeType.startsWith('image/') && item.blobUrl) {
         try {
-          // Fetch image from Vercel Blob
-          const response = await fetch(item.blobUrl);
-          if (response.ok) {
+          let dataUrl = item.blobUrl;
+
+          // If it's a blob URL (not already base64), fetch and convert
+          if (item.blobUrl.startsWith('http')) {
+            const response = await fetch(item.blobUrl);
+            if (!response.ok) {
+              throw new Error(`Failed to fetch blob: ${response.statusText}`);
+            }
             const buffer = await response.arrayBuffer();
             const base64 = Buffer.from(buffer).toString('base64');
-            const dataUrl = `data:${item.mimeType};base64,${base64}`;
-            const caption = await extractImageCaption(dataUrl, item.mimeType, model);
-            snippet = caption;
+            dataUrl = `data:${item.mimeType};base64,${base64}`;
           }
+          // else it's already a data URL from client
+
+          const caption = await extractImageCaption(dataUrl, item.mimeType, model);
+          snippet = caption;
         } catch (error) {
           console.error('Vision extraction failed:', error);
           // Fall back to basic snippet
