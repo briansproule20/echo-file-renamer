@@ -1,0 +1,18 @@
+{
+  "functions": {
+    "src/app/api/extract/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/propose/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/zip/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/blob/upload/route.ts": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  }
+}
+
