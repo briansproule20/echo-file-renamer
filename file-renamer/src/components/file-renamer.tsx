@@ -264,16 +264,16 @@ export function FileRenamer() {
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6">
       <div className="space-y-2">
-        <h1 className="font-bold text-3xl text-gray-900 dark:text-white">Echo Renamer</h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <h1 className="font-bold text-3xl text-foreground">Echo Renamer</h1>
+        <p className="text-muted-foreground">
           AI-powered bulk file renaming. Upload files, get smart suggestions, and download
           renamed files.
         </p>
       </div>
 
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-          <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+          <p className="text-destructive text-sm font-medium">{error}</p>
         </div>
       )}
 
@@ -283,11 +283,11 @@ export function FileRenamer() {
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-2">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-foreground font-medium">
                 {files.length} file{files.length !== 1 ? 's' : ''} uploaded
               </p>
               {estimatedTokens > 0 && (
-                <p className="text-xs text-gray-500 dark:text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   (~{estimatedTokens.toLocaleString()} tokens estimated)
                 </p>
               )}
@@ -298,12 +298,12 @@ export function FileRenamer() {
           </div>
 
           {proposedFiles.length === 0 ? (
-            <div className="border rounded-lg p-8 text-center dark:border-gray-700">
-              <Sparkles className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="font-medium text-lg text-gray-900 dark:text-white mb-2">
+            <div className="border border-border rounded-lg p-8 text-center bg-card">
+              <Sparkles className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="font-semibold text-lg text-foreground mb-2">
                 Ready to rename
               </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
+              <p className="text-muted-foreground mb-4">
                 Click the button below to analyze your files and generate smart filename
                 suggestions.
               </p>

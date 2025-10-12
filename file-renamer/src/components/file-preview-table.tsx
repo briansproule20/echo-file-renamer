@@ -49,15 +49,15 @@ export function FilePreviewTable({
   };
 
   const getConfidenceColor = (confidence: number): string => {
-    if (confidence >= 0.8) return 'text-green-600 dark:text-green-400';
-    if (confidence >= 0.5) return 'text-yellow-600 dark:text-yellow-400';
-    return 'text-red-600 dark:text-red-400';
+    if (confidence >= 0.8) return 'text-emerald-600 dark:text-emerald-400 font-medium';
+    if (confidence >= 0.5) return 'text-amber-600 dark:text-amber-400 font-medium';
+    return 'text-rose-600 dark:text-rose-400 font-medium';
   };
 
   const getConfidenceIcon = (confidence: number) => {
     if (confidence >= 0.8)
-      return <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />;
-    return <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />;
+      return <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />;
+    return <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />;
   };
 
   if (files.length === 0) {
@@ -77,7 +77,7 @@ export function FilePreviewTable({
             {allSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
             {allSelected ? 'Deselect All' : 'Select All'}
           </Button>
-          <span className="text-sm text-gray-600 dark:text-gray-400">
+          <span className="text-sm text-muted-foreground font-medium">
             {selectedCount} of {files.length} selected
           </span>
         </div>
@@ -115,32 +115,32 @@ export function FilePreviewTable({
         </div>
       </div>
 
-      <div className="border rounded-lg overflow-hidden dark:border-gray-700">
+      <div className="border border-border rounded-lg overflow-hidden bg-card">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-800">
+            <thead className="bg-muted">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Include
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Original Name
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   New Name
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Confidence
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Type
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Rationale
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-900 dark:divide-gray-700">
+            <tbody className="bg-card divide-y divide-border">
               {files.map((file) => (
                 <tr
                   key={file.id}
@@ -153,18 +153,18 @@ export function FilePreviewTable({
                       className="hover:scale-110 transition-transform"
                     >
                       {file.included ? (
-                        <CheckSquare className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <CheckSquare className="w-5 h-5 text-primary" />
                       ) : (
-                        <Square className="w-5 h-5 text-gray-400" />
+                        <Square className="w-5 h-5 text-muted-foreground" />
                       )}
                     </button>
                   </td>
                   <td className="px-4 py-3">
                     <div className="text-sm">
-                      <div className="font-medium text-gray-900 dark:text-gray-100">
+                      <div className="font-medium text-foreground">
                         {file.originalName}
                       </div>
-                      <div className="text-gray-500 dark:text-gray-400">
+                      <div className="text-muted-foreground text-xs">
                         {formatFileSize(file.size)}
                       </div>
                     </div>
@@ -185,9 +185,9 @@ export function FilePreviewTable({
                       <button
                         type="button"
                         onClick={() => setEditingId(file.id)}
-                        className="text-sm text-left hover:bg-gray-50 dark:hover:bg-gray-800 p-1 rounded w-full"
+                        className="text-sm text-left hover:bg-muted p-1 rounded w-full text-foreground"
                       >
-                        <span className={file.edited ? 'text-blue-600 dark:text-blue-400' : ''}>
+                        <span className={file.edited ? 'text-primary font-medium' : ''}>
                           {file.finalName}
                         </span>
                       </button>
@@ -202,12 +202,12 @@ export function FilePreviewTable({
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200">
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
                       {file.proposal.doctype}
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md">
+                    <p className="text-sm text-muted-foreground max-w-md">
                       {file.proposal.rationale}
                     </p>
                   </td>

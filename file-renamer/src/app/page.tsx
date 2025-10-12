@@ -7,13 +7,13 @@ export default async function Home() {
 
   if (!signedIn) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br p-4 dark:from-gray-900 dark:to-gray-800">
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
         <div className="w-full max-w-md space-y-8 text-center">
           <div>
-            <h2 className="mt-6 font-bold text-3xl text-gray-900 tracking-tight dark:text-white">
+            <h2 className="mt-6 font-bold text-3xl text-foreground tracking-tight">
               Echo Renamer
             </h2>
-            <p className="mt-2 text-gray-600 text-sm dark:text-gray-400">
+            <p className="mt-2 text-muted-foreground text-sm">
               AI-powered bulk file renaming with built-in billing
             </p>
           </div>
@@ -21,7 +21,7 @@ export default async function Home() {
           <div className="space-y-4">
             <SignInButton />
 
-            <div className="text-gray-500 text-xs dark:text-gray-400">
+            <div className="text-muted-foreground text-xs">
               Secure authentication with built-in AI billing
             </div>
           </div>
@@ -31,7 +31,7 @@ export default async function Home() {
   }
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen p-8 bg-background">
       <FileRenamer />
     </div>
   );

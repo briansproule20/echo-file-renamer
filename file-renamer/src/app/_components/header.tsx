@@ -1,4 +1,5 @@
 import { EchoAccount } from '@/components/echo-account-next';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { isSignedIn } from '@/echo';
 import Image from 'next/image';
 import type { FC } from 'react';
@@ -16,7 +17,7 @@ const Header: FC<HeaderProps> = async ({
 
   return (
     <header
-      className={`border-gray-200 border-b bg-white shadow-sm dark:bg-gray-900 dark:border-gray-800 ${className}`}
+      className={`border-b bg-background shadow-sm ${className}`}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
@@ -28,10 +29,11 @@ const Header: FC<HeaderProps> = async ({
               height={32}
               className="rounded-lg"
             />
-            <h1 className="font-semibold text-gray-900 text-xl dark:text-white">{title}</h1>
+            <h1 className="font-semibold text-foreground text-xl">{title}</h1>
           </div>
 
-          <nav className="flex items-center space-x-4">
+          <nav className="flex items-center gap-2">
+            <ThemeToggle />
             <EchoAccount />
           </nav>
         </div>

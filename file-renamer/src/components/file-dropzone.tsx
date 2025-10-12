@@ -51,11 +51,11 @@ export function FileDropzone({ onFilesAdded, disabled = false }: FileDropzonePro
       {...getRootProps()}
       className={`
         border-2 border-dashed rounded-lg p-12 text-center cursor-pointer
-        transition-colors duration-200
+        transition-colors duration-200 bg-card
         ${
           isDragActive
-            ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
-            : 'border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600'
+            ? 'border-primary bg-primary/5'
+            : 'border-border hover:border-primary/50'
         }
         ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
       `}
@@ -63,19 +63,19 @@ export function FileDropzone({ onFilesAdded, disabled = false }: FileDropzonePro
       <input {...getInputProps()} />
       <div className="flex flex-col items-center gap-4">
         {isDragActive ? (
-          <Upload className="w-12 h-12 text-blue-500 animate-bounce" />
+          <Upload className="w-12 h-12 text-primary animate-bounce" />
         ) : (
-          <FileIcon className="w-12 h-12 text-gray-400" />
+          <FileIcon className="w-12 h-12 text-muted-foreground" />
         )}
         <div>
-          <p className="text-lg font-medium text-gray-900 dark:text-gray-100">
+          <p className="text-lg font-semibold text-foreground">
             {isDragActive ? 'Drop files here' : 'Drag & drop files here'}
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             or click to browse
           </p>
         </div>
-        <p className="text-xs text-gray-400 dark:text-gray-500">
+        <p className="text-xs text-muted-foreground">
           Supports: PDF, DOCX, TXT, Images (PNG/JPG), Audio (MP3/WAV), ZIP
         </p>
       </div>
