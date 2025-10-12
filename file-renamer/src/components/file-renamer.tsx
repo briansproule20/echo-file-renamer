@@ -32,6 +32,8 @@ export function FileRenamer() {
     setUploadProgress({});
 
     try {
+      console.log('[FileRenamer] Starting extract with files:', files.length);
+      
       // Prepare FormData using case-study pattern (handles small/large files transparently)
       const formData = await prepareFilesForUpload(
         files.map((f) => f.file),
@@ -50,6 +52,12 @@ export function FileRenamer() {
       files.forEach((file, i) => {
         formData.append(`id-${i}`, file.id);
       });
+
+      // Debug: Log FormData contents
+      console.log('[FileRenamer] FormData entries:');
+      for (const [key, value] of formData.entries()) {
+        console.log(`  ${key}:`, value instanceof File ? `File(${value.name})` : value);
+      }
 
       const response = await fetch('/api/extract', {
         method: 'POST',
