@@ -3,6 +3,8 @@ import { PDFParse } from 'pdf-parse';
 import mammoth from 'mammoth';
 import type { ExtractedData } from '@/types/renamer';
 
+// Force this to be a dynamic route
+export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
