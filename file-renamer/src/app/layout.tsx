@@ -15,8 +15,31 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Echo Chat',
-  description: 'AI-powered chat application with Echo billing integration',
+  title: 'Echo Renamer',
+  description: 'AI-powered bulk file renaming with Echo billing integration',
+  icons: {
+    icon: '/icon.png',
+    apple: '/icon.png',
+  },
+  openGraph: {
+    title: 'Echo Renamer',
+    description: 'AI-powered bulk file renaming with Echo billing integration',
+    type: 'website',
+    images: [
+      {
+        url: '/icon.png',
+        width: 512,
+        height: 512,
+        alt: 'Echo Renamer',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Echo Renamer',
+    description: 'AI-powered bulk file renaming with Echo billing integration',
+    images: ['/icon.png'],
+  },
 };
 
 export default function RootLayout({
@@ -30,7 +53,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} flex h-screen flex-col antialiased`}
       >
         <Providers>
-          <Header title="Echo Chat" />
+          <Header title="Echo Renamer" />
           <div className="min-h-0 flex-1">{children}</div>
         </Providers>
       </body>

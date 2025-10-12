@@ -1,4 +1,4 @@
-import Chat from '@/app/_components/chat';
+import { FileRenamer } from '@/components/file-renamer';
 import SignInButton from '@/app/_components/echo/sign-in-button';
 import { isSignedIn } from '@/echo';
 
@@ -11,10 +11,10 @@ export default async function Home() {
         <div className="w-full max-w-md space-y-8 text-center">
           <div>
             <h2 className="mt-6 font-bold text-3xl text-gray-900 tracking-tight dark:text-white">
-              Echo Demo App
+              Echo Renamer
             </h2>
             <p className="mt-2 text-gray-600 text-sm dark:text-gray-400">
-              AI-powered chat with built-in billing and user management
+              AI-powered bulk file renaming with built-in billing
             </p>
           </div>
 
@@ -30,5 +30,9 @@ export default async function Home() {
     );
   }
 
-  return <Chat />;
+  return (
+    <div className="min-h-screen p-8">
+      <FileRenamer />
+    </div>
+  );
 }
