@@ -327,6 +327,14 @@ export function FileRenamer() {
                   </>
                 )}
               </Button>
+              {isProcessing && (
+                <div className="mt-4 flex items-center justify-center gap-2 text-muted-foreground text-sm">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <p className="text-center">
+                    Many files and larger files will take longer to process
+                  </p>
+                </div>
+              )}
             </div>
           ) : (
             <FilePreviewTable
