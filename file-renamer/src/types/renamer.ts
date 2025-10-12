@@ -35,11 +35,13 @@ export interface FileItem {
   mimeType: string;
   size: number;
   file: File;
+  blobUrl: string; // Vercel Blob storage URL
 }
 
 export interface ExtractedData {
   id: string;
   snippet: string;
+  blobUrl: string; // Vercel Blob storage URL for the file
   metadata: {
     dateCandidate?: string;
     exifData?: Record<string, unknown>;

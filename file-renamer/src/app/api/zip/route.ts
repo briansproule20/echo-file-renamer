@@ -6,7 +6,7 @@ export const maxDuration = 60;
 interface ZipFileRequest {
   originalName: string;
   finalName: string;
-  data: string; // base64 encoded file data
+  blobUrl: string; // Vercel Blob storage URL
 }
 
 export async function POST(req: NextRequest) {
@@ -25,9 +25,12 @@ export async function POST(req: NextRequest) {
     // Add each file to the ZIP with the renamed filename
     for (const file of files) {
       try {
-        // Decode base64 data
-        const base64Data = file.data.split(',')[1] || file.data;
-        const buffer = Buffer.from(base64Data, 'base64');
+        // Fetch file from Vercel Blob
+        const response = await fetch(file.blobUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch blob: ${response.statusText}`);
+        }
+        const buffer = await response.arrayBuffer();
         zip.file(file.finalName, buffer);
       } catch (error) {
         console.error(`Failed to add file ${file.finalName}:`, error);

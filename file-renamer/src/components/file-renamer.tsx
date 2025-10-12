@@ -29,15 +29,19 @@ export function FileRenamer() {
     setError(null);
 
     try {
-      const formData = new FormData();
-      for (const file of files) {
-        formData.append('files', file.file);
-        formData.append(`id_${file.file.name}`, file.id);
-      }
+      // Send blob URLs to API for extraction (no more FormData!)
+      const fileData = files.map((file) => ({
+        id: file.id,
+        blobUrl: file.blobUrl,
+        originalName: file.originalName,
+        mimeType: file.mimeType,
+        size: file.size,
+      }));
 
       const response = await fetch('/api/extract', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ files: fileData }),
       });
 
       if (!response.ok) {
@@ -65,7 +69,7 @@ export function FileRenamer() {
     setError(null);
 
     try {
-      // Prepare items for proposal
+      // Prepare items for proposal with blob URLs
       const items = files.map((file) => {
         const extracted = extractedData.find((e) => e.id === file.id);
         return {
@@ -74,38 +78,14 @@ export function FileRenamer() {
           mimeType: file.mimeType,
           snippet: extracted?.snippet || '',
           dateCandidate: extracted?.metadata.dateCandidate,
-          // For images, include base64 data for vision
-          imageData: file.mimeType.startsWith('image/')
-            ? URL.createObjectURL(file.file)
-            : undefined,
+          blobUrl: file.blobUrl, // Pass blob URL instead of base64
         };
       });
-
-      // Convert image URLs to base64 for images
-      const itemsWithImages = await Promise.all(
-        items.map(async (item) => {
-          if (item.imageData && item.mimeType.startsWith('image/')) {
-            try {
-              const response = await fetch(item.imageData);
-              const blob = await response.blob();
-              const base64 = await new Promise<string>((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.readAsDataURL(blob);
-              });
-              return { ...item, imageData: base64 };
-            } catch {
-              return item;
-            }
-          }
-          return item;
-        }),
-      );
 
       const response = await fetch('/api/propose', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: itemsWithImages }),
+        body: JSON.stringify({ items }),
       });
 
       if (!response.ok) {
@@ -154,22 +134,12 @@ export function FileRenamer() {
     setError(null);
 
     try {
-      // Convert files to base64
-      const filesData = await Promise.all(
-        selectedFiles.map(async (file) => {
-          const base64 = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.readAsDataURL(file.file);
-          });
-
-          return {
-            originalName: file.originalName,
-            finalName: file.finalName,
-            data: base64,
-          };
-        }),
-      );
+      // Send blob URLs to API (no more base64 conversion!)
+      const filesData = selectedFiles.map((file) => ({
+        originalName: file.originalName,
+        finalName: file.finalName,
+        blobUrl: file.blobUrl,
+      }));
 
       const response = await fetch('/api/zip', {
         method: 'POST',

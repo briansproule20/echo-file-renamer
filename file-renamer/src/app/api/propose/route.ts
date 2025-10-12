@@ -12,7 +12,7 @@ interface FileProposalRequest {
   mimeType: string;
   snippet: string;
   dateCandidate?: string;
-  imageData?: string; // base64 encoded image for vision
+  blobUrl: string; // Vercel Blob storage URL
 }
 
 export async function POST(req: NextRequest) {
@@ -35,11 +35,18 @@ export async function POST(req: NextRequest) {
     for (const item of items) {
       let snippet = item.snippet;
 
-      // Handle images with vision model if imageData provided
-      if (item.mimeType.startsWith('image/') && item.imageData) {
+      // Handle images with vision model by fetching from blob URL
+      if (item.mimeType.startsWith('image/')) {
         try {
-          const caption = await extractImageCaption(item.imageData, item.mimeType, model);
-          snippet = caption;
+          // Fetch image from Vercel Blob
+          const response = await fetch(item.blobUrl);
+          if (response.ok) {
+            const buffer = await response.arrayBuffer();
+            const base64 = Buffer.from(buffer).toString('base64');
+            const dataUrl = `data:${item.mimeType};base64,${base64}`;
+            const caption = await extractImageCaption(dataUrl, item.mimeType, model);
+            snippet = caption;
+          }
         } catch (error) {
           console.error('Vision extraction failed:', error);
           // Fall back to basic snippet
