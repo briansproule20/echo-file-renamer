@@ -17,6 +17,7 @@ export function FileRenamer() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [estimatedTokens, setEstimatedTokens] = useState(0);
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
 
   const handleFilesAdded = (newFiles: FileItem[]) => {
     setFiles((prev) => [...prev, ...newFiles]);
