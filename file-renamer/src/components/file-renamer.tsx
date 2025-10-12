@@ -28,10 +28,22 @@ export function FileRenamer() {
 
     setIsExtracting(true);
     setError(null);
+    setUploadProgress({});
 
     try {
       // Prepare FormData using case-study pattern (handles small/large files transparently)
-      const formData = await prepareFilesForUpload(files.map((f) => f.file));
+      const formData = await prepareFilesForUpload(
+        files.map((f) => f.file),
+        (fileName, percentage) => {
+          setUploadProgress((prev) => ({
+            ...prev,
+            [fileName]: percentage,
+          }));
+        },
+      );
+
+      // Clear progress after upload completes
+      setUploadProgress({});
 
       // Add file IDs
       files.forEach((file, i) => {
@@ -58,6 +70,7 @@ export function FileRenamer() {
     } catch (err) {
       console.error('Extract error:', err);
       setError(err instanceof Error ? err.message : 'Failed to extract content');
+      setUploadProgress({});
     } finally {
       setIsExtracting(false);
     }
@@ -372,14 +385,36 @@ export function FileRenamer() {
                   </>
                 )}
               </Button>
-              {isProcessing && (
-                <div className="mt-4 flex items-center justify-center gap-2 text-muted-foreground text-sm">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <p className="text-center">
-                    Many files and larger files will take longer to process
-                  </p>
-                </div>
-              )}
+        {isProcessing && (
+          <div className="mt-4 space-y-3">
+            <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <p className="text-center">
+                {Object.keys(uploadProgress).length > 0
+                  ? 'Uploading large files to cloud storage...'
+                  : 'Many files and larger files will take longer to process'}
+              </p>
+            </div>
+            {Object.keys(uploadProgress).length > 0 && (
+              <div className="space-y-2 max-w-md mx-auto">
+                {Object.entries(uploadProgress).map(([name, progress]) => (
+                  <div key={name} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span className="truncate max-w-[200px]">{name}</span>
+                      <span>{progress}%</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2">
+                      <div
+                        className="bg-primary h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
             </div>
           ) : (
             <FilePreviewTable
