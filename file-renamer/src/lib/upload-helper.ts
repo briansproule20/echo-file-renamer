@@ -3,7 +3,7 @@
 
 import { upload } from '@vercel/blob/client';
 
-const DIRECT_UPLOAD_LIMIT = 4 * 1024 * 1024; // 4MB - Vercel limit
+const DIRECT_UPLOAD_LIMIT = 4 * 1024 * 1024; // 4MB total payload limit
 
 /**
  * Smart file upload that automatically handles large files via blob storage
@@ -18,11 +18,17 @@ export async function prepareFilesForUpload(
   const formData = new FormData();
   const fileArray = Array.from(files);
 
+  // Calculate total size to decide upload strategy
+  const totalSize = fileArray.reduce((sum, f) => sum + f.size, 0);
+  const useBlob = totalSize > DIRECT_UPLOAD_LIMIT;
+
+  console.log(`[Upload] Total size: ${formatFileSize(totalSize)}, using ${useBlob ? 'blob storage' : 'direct upload'}`);
+
   for (let i = 0; i < fileArray.length; i++) {
     const file = fileArray[i];
 
-    // For large files, use client-side blob upload (browser only, not SSR)
-    if (file.size > DIRECT_UPLOAD_LIMIT && typeof window !== 'undefined') {
+    // If total payload is too large, upload ALL files to blob
+    if (useBlob && typeof window !== 'undefined') {
       try {
         console.log(`[Upload] Starting blob upload: ${file.name} (${formatFileSize(file.size)})`);
 
