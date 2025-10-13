@@ -56,6 +56,7 @@ export function FileRenamer() {
 
     try {
       console.log('[FileRenamer] Starting extract with files:', targetFiles.length);
+      targetFiles.forEach(f => console.log(`  - ${f.originalName}: ${(f.size / 1024 / 1024).toFixed(2)}MB`));
       
       // Prepare FormData using case-study pattern (handles small/large files transparently)
       const formData = await prepareFilesForUpload(
@@ -79,7 +80,7 @@ export function FileRenamer() {
       // Debug: Log FormData contents
       console.log('[FileRenamer] FormData entries:');
       for (const [key, value] of formData.entries()) {
-        console.log(`  ${key}:`, value instanceof File ? `File(${value.name})` : value);
+        console.log(`  ${key}:`, value instanceof File ? `File(${value.name}, ${(value.size / 1024 / 1024).toFixed(2)}MB)` : value);
       }
 
       const response = await fetch('/api/extract', {
@@ -88,17 +89,34 @@ export function FileRenamer() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to extract file content');
+        const errorText = await response.text();
+        console.error('[FileRenamer] Extract failed:', response.status, errorText);
+        throw new Error(`Failed to extract file content (${response.status})`);
       }
 
       const { results } = (await response.json()) as { results: ExtractedData[] };
+
+      // Update files with blob URLs from extract results
+      const updatedFiles = targetFiles.map(file => {
+        const result = results.find(r => r.id === file.id);
+        if (result && result.blobUrl) {
+          return { ...file, blobUrl: result.blobUrl };
+        }
+        return file;
+      });
+
+      // Update the files state with blob URLs
+      setFiles(prev => prev.map(f => {
+        const updated = updatedFiles.find(uf => uf.id === f.id);
+        return updated || f;
+      }));
 
       // Estimate tokens
       const totalTokens = results.reduce((sum, r) => sum + estimateTokens(r.snippet), 0);
       setEstimatedTokens(totalTokens);
 
-      // Now propose names
-      await handlePropose(results, shouldMerge, targetFiles);
+      // Now propose names with updated files
+      await handlePropose(results, shouldMerge, updatedFiles);
     } catch (err) {
       console.error('Extract error:', err);
       setError(err instanceof Error ? err.message : 'Failed to extract content');
