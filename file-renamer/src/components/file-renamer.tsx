@@ -44,19 +44,20 @@ export function FileRenamer() {
     setError(null);
   };
 
-  const handleExtract = async () => {
-    if (files.length === 0) return;
+  const handleExtract = async (shouldMerge = false, filesToProcess?: FileItem[]) => {
+    const targetFiles = filesToProcess || files;
+    if (targetFiles.length === 0) return;
 
     setIsExtracting(true);
     setError(null);
     setUploadProgress({});
 
     try {
-      console.log('[FileRenamer] Starting extract with files:', files.length);
+      console.log('[FileRenamer] Starting extract with files:', targetFiles.length);
       
       // Prepare FormData using case-study pattern (handles small/large files transparently)
       const formData = await prepareFilesForUpload(
-        files.map((f) => f.file),
+        targetFiles.map((f) => f.file),
         (fileName, percentage) => {
           setUploadProgress((prev) => ({
             ...prev,
@@ -69,7 +70,7 @@ export function FileRenamer() {
       setUploadProgress({});
 
       // Add file IDs
-      files.forEach((file, i) => {
+      targetFiles.forEach((file, i) => {
         formData.append(`id-${i}`, file.id);
       });
 
@@ -95,7 +96,7 @@ export function FileRenamer() {
       setEstimatedTokens(totalTokens);
 
       // Now propose names
-      await handlePropose(results);
+      await handlePropose(results, shouldMerge, targetFiles);
     } catch (err) {
       console.error('Extract error:', err);
       setError(err instanceof Error ? err.message : 'Failed to extract content');
@@ -105,14 +106,15 @@ export function FileRenamer() {
     }
   };
 
-  const handlePropose = async (extractedData: ExtractedData[]) => {
+  const handlePropose = async (extractedData: ExtractedData[], shouldMerge = false, filesToProcess?: FileItem[]) => {
+    const targetFiles = filesToProcess || files;
     setIsProposing(true);
     setError(null);
 
     try {
       // Prepare items for proposal - convert small images to base64
       const items = await Promise.all(
-        files.map(async (file) => {
+        targetFiles.map(async (file) => {
           const extracted = extractedData.find((e) => e.id === file.id);
           let imageData = file.blobUrl;
 
@@ -155,7 +157,7 @@ export function FileRenamer() {
       const { results } = await response.json();
 
       // Merge proposals with files
-      const proposed: ProposedFile[] = files.map((file) => {
+      const proposed: ProposedFile[] = targetFiles.map((file) => {
         const result = results.find((r: { id: string }) => r.id === file.id);
         return {
           ...file,
@@ -166,7 +168,16 @@ export function FileRenamer() {
         };
       });
 
-      setProposedFiles(proposed);
+      if (shouldMerge) {
+        // Merge new proposals into existing proposedFiles, keeping unselected files
+        const updatedIds = new Set(proposed.map((f) => f.id));
+        setProposedFiles((prev) => [
+          ...prev.filter((f) => !updatedIds.has(f.id)), // Keep files that weren't rerun
+          ...proposed, // Add newly processed files
+        ]);
+      } else {
+        setProposedFiles(proposed);
+      }
     } catch (err) {
       console.error('Propose error:', err);
       setError(err instanceof Error ? err.message : 'Failed to generate proposals');
@@ -313,14 +324,10 @@ export function FileRenamer() {
 
     if (selectedFiles.length === 0) return;
 
-    // Create a temporary files array with only selected
-    const originalFiles = files;
-    setFiles(selectedFiles);
-
-    await handleExtract();
-
-    // Restore all files
-    setFiles(originalFiles);
+    console.log('[FileRenamer] Rerunning selected files:', selectedFiles.length, 'out of', files.length);
+    
+    // Extract and propose with merge mode, passing selected files explicitly
+    await handleExtract(true, selectedFiles);
   };
 
   const handleClear = () => {
