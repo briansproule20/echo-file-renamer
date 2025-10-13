@@ -5,9 +5,29 @@ import { FileDropzone } from './file-dropzone';
 import { FilePreviewTable } from './file-preview-table';
 import type { FileItem, ProposedFile, ExtractedData } from '@/types/renamer';
 import { Button } from './ui/button';
-import { Loader2, Sparkles, X, FileIcon } from 'lucide-react';
+import { Loader2, Sparkles, X, FileIcon, FileText, FileImage, FileAudio, FileArchive } from 'lucide-react';
 import { estimateTokens } from '@/lib/filename-utils';
 import { prepareFilesForUpload } from '@/lib/upload-helper';
+import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+
+const getFileIcon = (mimeType: string) => {
+  if (mimeType.startsWith('image/')) return FileImage;
+  if (mimeType.startsWith('audio/')) return FileAudio;
+  if (mimeType.includes('pdf') || mimeType.includes('word') || mimeType.includes('text')) return FileText;
+  if (mimeType.includes('zip')) return FileArchive;
+  return FileIcon;
+};
+
+const getFileColor = (mimeType: string) => {
+  if (mimeType.startsWith('image/')) return 'bg-blue-500/10 text-blue-600 dark:text-blue-400';
+  if (mimeType.startsWith('audio/')) return 'bg-purple-500/10 text-purple-600 dark:text-purple-400';
+  if (mimeType.includes('pdf')) return 'bg-red-500/10 text-red-600 dark:text-red-400';
+  if (mimeType.includes('word')) return 'bg-blue-500/10 text-blue-600 dark:text-blue-400';
+  if (mimeType.includes('text')) return 'bg-gray-500/10 text-gray-600 dark:text-gray-400';
+  if (mimeType.includes('zip')) return 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400';
+  return 'bg-gray-500/10 text-gray-600 dark:text-gray-400';
+};
 
 export function FileRenamer() {
   const [files, setFiles] = useState<FileItem[]>([]);
@@ -356,35 +376,66 @@ export function FileRenamer() {
             </Button>
           </div>
 
-          {/* File List with Delete Buttons */}
-          <div className="relative z-10 space-y-2">
-            {files.map((file) => (
-              <div
-                key={file.id}
-                className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card/80 backdrop-blur-sm"
-              >
-                <FileIcon className="w-5 h-5 text-muted-foreground flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {file.originalName}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {(file.size / 1024 / 1024).toFixed(2)} MB
-                    {file.blobUrl && ' • Stored in cloud'}
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleRemoveFile(file.id)}
-                  disabled={isProcessing}
-                  className="flex-shrink-0 h-8 w-8 text-muted-foreground hover:text-destructive"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            ))}
-          </div>
+          {/* File List with Avatars */}
+          <TooltipProvider delayDuration={300}>
+            <div className="relative z-10 flex flex-wrap gap-3">
+              {files.map((file) => {
+                const IconComponent = getFileIcon(file.mimeType);
+                const colorClass = getFileColor(file.mimeType);
+                const isImage = file.mimeType.startsWith('image/');
+                
+                return (
+                  <div
+                    key={file.id}
+                    className="group relative"
+                  >
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div>
+                          <Avatar className="size-12 ring-2 ring-border hover:ring-primary transition-all cursor-pointer">
+                            {isImage ? (
+                              <>
+                                <AvatarImage 
+                                  src={URL.createObjectURL(file.file)} 
+                                  alt={file.originalName}
+                                  className="object-cover"
+                                />
+                                <AvatarFallback className={colorClass}>
+                                  <IconComponent className="w-5 h-5" />
+                                </AvatarFallback>
+                              </>
+                            ) : (
+                              <AvatarFallback className={colorClass}>
+                                <IconComponent className="w-5 h-5" />
+                              </AvatarFallback>
+                            )}
+                          </Avatar>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs">
+                        <div className="space-y-1">
+                          <p className="font-medium text-sm">{file.originalName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                            {file.blobUrl && ' • Cloud storage'}
+                          </p>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => handleRemoveFile(file.id)}
+                      disabled={isProcessing}
+                      className="absolute -top-1 -right-1 h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </TooltipProvider>
 
           {proposedFiles.length === 0 ? (
             <div className="border border-border rounded-lg p-8 text-center bg-card/80 backdrop-blur-sm">
