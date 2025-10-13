@@ -498,11 +498,11 @@ export function FileRenamer() {
                   Click the button below to analyze your files and generate smart filename
                   suggestions.
                 </p>
-                <Button
-                  onClick={handleExtract}
-                  disabled={isProcessing}
-                  className="flex items-center gap-2"
-                >
+              <Button
+                onClick={() => handleExtract()}
+                disabled={isProcessing}
+                className="flex items-center gap-2"
+              >
                   {isProcessing ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
