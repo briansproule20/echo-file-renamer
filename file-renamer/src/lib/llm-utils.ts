@@ -28,7 +28,10 @@ const SYSTEM_PROMPT = `You are a filename generator. Output STRICT JSON only mat
 }
 Never include slashes or illegal characters. Use lowercase kebab-case. Trim to 120 chars.
 
-CRITICAL: If user provides specific instructions, you MUST follow them exactly. User instructions override all default policies.`;
+⚠️ CRITICAL RULES:
+1. If user provides specific instructions, you MUST follow them exactly. User instructions override all default policies.
+2. DO NOT MAKE UP DATES. Only use dates that are explicitly visible in the provided content. If no date is found, set date_iso to null.
+3. DO NOT use placeholder dates like "2023" or "2024" - these are WRONG. Use actual dates from the content or set to null.`;
 
 const RENAMING_POLICY = `DEFAULT RENAMING POLICY (can be overridden by user instructions):
 - lowercase kebab-case, strip unsafe chars, collapse spaces
@@ -68,15 +71,19 @@ IMPORTANT: Put the COMPLETE filename (following these instructions) in the "prop
 
   userPrompt += `Original filename: "${input.originalName}"
 MIME: ${input.mimeType}
-Detected text snippet (first ~2000 chars): 
+Detected content/text (analyze carefully for dates):
 """
 ${truncatedSnippet}
 """
 EXIF/metadata date candidate(s): ${input.dateCandidates?.join(', ') || 'none'}
 
+⚠️ CRITICAL: Look for dates in the detected content above. Use the ACTUAL date from the content/image, NOT a made-up date like 2023. If you see a date in the content, use it. If no date is found, set date_iso to null.
+
 ${RENAMING_POLICY}${input.userInstructions ? '\n\n⚠️ IMPORTANT: Apply the USER INSTRUCTIONS above when generating the filename. These instructions override default policies.' : ''}
 
 Return JSON only.`;
+
+  console.log('[LLM] Snippet being sent to model:', truncatedSnippet.substring(0, 300));
 
   try {
     const { text } = await generateText({
@@ -91,6 +98,7 @@ Return JSON only.`;
     const parsed = JSON.parse(jsonText);
 
     const validated = FilenameProposalSchema.parse(parsed);
+    console.log('[LLM] Proposed filename:', validated.proposed_filename, 'date:', validated.date_iso);
     return validated;
   } catch (error) {
     console.error('Failed to propose filename:', error);
@@ -122,7 +130,7 @@ export async function extractImageCaption(
           content: [
             {
               type: 'text',
-              text: 'Describe this image briefly in 1-2 sentences. Focus on: what type of document/image is this, key visible text or entities, and main subject/topic.',
+              text: 'Analyze this image and provide: 1) Type of document/image, 2) Any visible dates (in exact format shown - look carefully for dates in YYYY, MM/DD/YYYY, or any other format), 3) Key visible text or entities, 4) Main subject/topic. BE SPECIFIC about any dates you see.',
             },
             {
               type: 'image',
@@ -133,6 +141,7 @@ export async function extractImageCaption(
       ],
     });
 
+    console.log('[Vision] Extracted from image:', text);
     return text;
   } catch (error) {
     console.error('Failed to extract image caption:', error);

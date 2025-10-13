@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
 
       // Handle images with vision model - ALWAYS run vision on images
       if (item.mimeType.startsWith('image/') && item.blobUrl) {
+        console.log('[Propose] Image detected, running vision extraction...');
         try {
           let dataUrl = item.blobUrl;
 
@@ -62,11 +63,14 @@ export async function POST(req: NextRequest) {
           // else it's already a data URL from client
 
           const caption = await extractImageCaption(dataUrl, item.mimeType, model);
+          console.log('[Propose] Vision extracted:', caption.substring(0, 200));
           snippet = caption;
         } catch (error) {
-          console.error('Vision extraction failed:', error);
+          console.error('[Propose] Vision extraction failed:', error);
           // Fall back to basic snippet
         }
+      } else {
+        console.log('[Propose] Non-image file, using snippet:', snippet.substring(0, 100));
       }
 
       const proposal = await proposeFilename(
