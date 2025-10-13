@@ -22,6 +22,13 @@ export function sanitizeFilename(name: string): string {
  * Builds a filename from proposal slots following the policy
  */
 export function buildFilename(proposal: FilenameProposal): string {
+  // If proposed_filename exists and looks complete, use it directly
+  // (this allows custom formatting from user instructions)
+  if (proposal.proposed_filename && proposal.proposed_filename.length > 5) {
+    return sanitizeFilename(proposal.proposed_filename);
+  }
+
+  // Otherwise, build from parts
   const parts: string[] = [];
 
   // Priority order: doctype, primary entity, secondary entity, topic, date
@@ -45,13 +52,8 @@ export function buildFilename(proposal: FilenameProposal): string {
     parts.push(proposal.date_iso);
   }
 
-  // Fallback to proposed_filename if no parts
-  if (parts.length === 0 && proposal.proposed_filename) {
-    return sanitizeFilename(proposal.proposed_filename);
-  }
-
   const combined = parts.join('-');
-  return sanitizeFilename(combined);
+  return sanitizeFilename(combined) || sanitizeFilename(proposal.proposed_filename);
 }
 
 /**

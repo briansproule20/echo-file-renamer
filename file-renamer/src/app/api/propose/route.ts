@@ -17,11 +17,20 @@ interface FileProposalRequest {
 
 export async function POST(req: NextRequest) {
   try {
-    const { items } = (await req.json()) as { items: FileProposalRequest[] };
+    const body = await req.json();
+    console.log('[Propose API] Full request body keys:', Object.keys(body));
+    console.log('[Propose API] Instructions value:', body.instructions);
+    
+    const { items, instructions } = body as { 
+      items: FileProposalRequest[];
+      instructions?: string;
+    };
 
     if (!items || items.length === 0) {
       return NextResponse.json({ error: 'No items provided' }, { status: 400 });
     }
+
+    console.log('[Propose API] Received instructions:', instructions || '(none)');
 
     const model = openai('gpt-4o-mini'); // Fast and cost-effective model
 
@@ -66,6 +75,7 @@ export async function POST(req: NextRequest) {
           mimeType: item.mimeType,
           snippet,
           dateCandidates: item.dateCandidate ? [item.dateCandidate] : undefined,
+          userInstructions: instructions,
         },
         model,
       );

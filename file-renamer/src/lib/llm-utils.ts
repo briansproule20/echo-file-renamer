@@ -26,11 +26,14 @@ const SYSTEM_PROMPT = `You are a filename generator. Output STRICT JSON only mat
   "topic": string or null,
   "rationale": string (<= 2 sentences)
 }
-Never include slashes or illegal characters. Use lowercase kebab-case. Trim to 120 chars.`;
+Never include slashes or illegal characters. Use lowercase kebab-case. Trim to 120 chars.
 
-const RENAMING_POLICY = `RENAMING POLICY:
+CRITICAL: If user provides specific instructions, you MUST follow them exactly. User instructions override all default policies.`;
+
+const RENAMING_POLICY = `DEFAULT RENAMING POLICY (can be overridden by user instructions):
 - lowercase kebab-case, strip unsafe chars, collapse spaces
-- order: doctype, primary entity, secondary (optional), topic, date (YYYY-MM-DD)
+- order: doctype, primary entity, secondary (optional), topic, date
+- default date format: YYYY-MM-DD (but use user's requested format if specified)
 - truncate to 120 chars, preserve meaning
 - if unclear, pick "other" and a concise topic`;
 
@@ -39,6 +42,7 @@ interface ProposeNameInput {
   mimeType: string;
   snippet: string;
   dateCandidates?: string[];
+  userInstructions?: string;
 }
 
 export async function proposeFilename(
@@ -47,14 +51,31 @@ export async function proposeFilename(
 ): Promise<FilenameProposal> {
   const truncatedSnippet = truncateToTokens(input.snippet, 500);
 
-  const userPrompt = `Original filename: "${input.originalName}"
+  // Build user prompt with instructions at the top if provided
+  let userPrompt = '';
+  
+  if (input.userInstructions) {
+    userPrompt += `=====================================
+USER INSTRUCTIONS (MUST FOLLOW):
+${input.userInstructions}
+
+IMPORTANT: Put the COMPLETE filename (following these instructions) in the "proposed_filename" field. This will be used as-is.
+=====================================
+
+`;
+    console.log('[LLM] Using user instructions:', input.userInstructions);
+  }
+
+  userPrompt += `Original filename: "${input.originalName}"
 MIME: ${input.mimeType}
 Detected text snippet (first ~2000 chars): 
 """
 ${truncatedSnippet}
 """
 EXIF/metadata date candidate(s): ${input.dateCandidates?.join(', ') || 'none'}
-${RENAMING_POLICY}
+
+${RENAMING_POLICY}${input.userInstructions ? '\n\n⚠️ IMPORTANT: Apply the USER INSTRUCTIONS above when generating the filename. These instructions override default policies.' : ''}
+
 Return JSON only.`;
 
   try {

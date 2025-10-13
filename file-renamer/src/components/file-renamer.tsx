@@ -10,6 +10,7 @@ import { estimateTokens } from '@/lib/filename-utils';
 import { prepareFilesForUpload } from '@/lib/upload-helper';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { Textarea } from './ui/textarea';
 
 const getFileIcon = (mimeType: string) => {
   if (mimeType.startsWith('image/')) return FileImage;
@@ -38,6 +39,7 @@ export function FileRenamer() {
   const [error, setError] = useState<string | null>(null);
   const [estimatedTokens, setEstimatedTokens] = useState(0);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
+  const [instructions, setInstructions] = useState('');
 
   const handleFilesAdded = (newFiles: FileItem[]) => {
     setFiles((prev) => [...prev, ...newFiles]);
@@ -144,10 +146,17 @@ export function FileRenamer() {
         }),
       );
 
+      console.log('[FileRenamer] Sending instructions:', instructions);
+      const requestBody = { 
+        items,
+        instructions: instructions.trim() || undefined,
+      };
+      console.log('[FileRenamer] Request body:', JSON.stringify({ ...requestBody, items: `[${requestBody.items.length} items]` }));
+      
       const response = await fetch('/api/propose', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -362,8 +371,25 @@ export function FileRenamer() {
       )}
 
       {files.length === 0 ? (
-        <div className="relative z-10">
+        <div className="relative z-10 space-y-4">
           <FileDropzone onFilesAdded={handleFilesAdded} disabled={isProcessing} />
+          
+          {/* Optional Instructions */}
+          <div className="w-full overflow-hidden rounded-xl border bg-background shadow-sm">
+            <div className="p-3">
+              <label htmlFor="instructions" className="text-sm font-medium text-foreground mb-2 block">
+                Instructions (Optional)
+              </label>
+              <Textarea
+                id="instructions"
+                value={instructions}
+                onChange={(e) => setInstructions(e.target.value)}
+                placeholder="Add any special instructions for naming... e.g., 'Use YYYY-MM-DD format for dates' or 'Include project name in all files'"
+                className="min-h-[80px] resize-none border-none shadow-none focus-visible:ring-0 p-0"
+                disabled={isProcessing}
+              />
+            </div>
+          </div>
         </div>
       ) : (
         <div className="relative z-10 space-y-4">
@@ -445,63 +471,82 @@ export function FileRenamer() {
           </TooltipProvider>
 
           {proposedFiles.length === 0 ? (
-            <div className="border border-border rounded-lg p-8 text-center bg-card/80 backdrop-blur-sm">
-              <Sparkles className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="font-semibold text-lg text-foreground mb-2">
-                Ready to rename
-              </h3>
-              <p className="text-muted-foreground mb-4">
-                Click the button below to analyze your files and generate smart filename
-                suggestions.
-              </p>
-              <Button
-                onClick={handleExtract}
-                disabled={isProcessing}
-                className="flex items-center gap-2"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    {isExtracting ? 'Extracting content...' : 'Generating names...'}
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-4 h-4" />
-                    Propose Names
-                  </>
-                )}
-              </Button>
-        {isProcessing && (
-          <div className="mt-4 space-y-3">
-            <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <p className="text-center">
-                {Object.keys(uploadProgress).length > 0
-                  ? 'Uploading large files to cloud storage...'
-                  : 'Many files and larger files will take longer to process'}
-              </p>
-            </div>
-            {Object.keys(uploadProgress).length > 0 && (
-              <div className="space-y-2 max-w-md mx-auto">
-                {Object.entries(uploadProgress).map(([name, progress]) => (
-                  <div key={name} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span className="truncate max-w-[200px]">{name}</span>
-                      <span>{progress}%</span>
-                    </div>
-                    <div className="w-full bg-muted rounded-full h-2">
-                      <div
-                        className="bg-primary h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
+            <>
+              {/* Optional Instructions - visible before generation */}
+              <div className="w-full overflow-hidden rounded-xl border bg-background shadow-sm">
+                <div className="p-3">
+                  <label htmlFor="instructions-upload" className="text-sm font-medium text-foreground mb-2 block">
+                    Instructions (Optional)
+                  </label>
+                  <Textarea
+                    id="instructions-upload"
+                    value={instructions}
+                    onChange={(e) => setInstructions(e.target.value)}
+                    placeholder="Add any special instructions for naming... e.g., 'Use YYYY-MM-DD format for dates' or 'Include project name in all files'"
+                    className="min-h-[80px] resize-none border-none shadow-none focus-visible:ring-0 p-0"
+                    disabled={isProcessing}
+                  />
+                </div>
               </div>
-            )}
-          </div>
-        )}
-            </div>
+
+              <div className="border border-border rounded-lg p-8 text-center bg-card/80 backdrop-blur-sm">
+                <Sparkles className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="font-semibold text-lg text-foreground mb-2">
+                  Ready to rename
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  Click the button below to analyze your files and generate smart filename
+                  suggestions.
+                </p>
+                <Button
+                  onClick={handleExtract}
+                  disabled={isProcessing}
+                  className="flex items-center gap-2"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {isExtracting ? 'Extracting content...' : 'Generating names...'}
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      Propose Names
+                    </>
+                  )}
+                </Button>
+                {isProcessing && (
+                  <div className="mt-4 space-y-3">
+                    <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <p className="text-center">
+                        {Object.keys(uploadProgress).length > 0
+                          ? 'Uploading large files to cloud storage...'
+                          : 'Many files and larger files will take longer to process'}
+                      </p>
+                    </div>
+                    {Object.keys(uploadProgress).length > 0 && (
+                      <div className="space-y-2 max-w-md mx-auto">
+                        {Object.entries(uploadProgress).map(([name, progress]) => (
+                          <div key={name} className="space-y-1">
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                              <span className="truncate max-w-[200px]">{name}</span>
+                              <span>{progress}%</span>
+                            </div>
+                            <div className="w-full bg-muted rounded-full h-2">
+                              <div
+                                className="bg-primary h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${progress}%` }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
           ) : (
             <FilePreviewTable
               files={proposedFiles}
