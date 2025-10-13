@@ -372,9 +372,7 @@ export function FileRenamer() {
 
       {files.length === 0 ? (
         <div className="relative z-10 space-y-4">
-          <FileDropzone onFilesAdded={handleFilesAdded} disabled={isProcessing} />
-          
-          {/* Optional Instructions */}
+          {/* Optional Instructions - Always above file upload */}
           <div className="w-full overflow-hidden rounded-xl border bg-background shadow-sm">
             <div className="p-3">
               <label htmlFor="instructions" className="text-sm font-medium text-foreground mb-2 block">
@@ -390,9 +388,30 @@ export function FileRenamer() {
               />
             </div>
           </div>
+
+          <FileDropzone onFilesAdded={handleFilesAdded} disabled={isProcessing} />
         </div>
       ) : (
         <div className="relative z-10 space-y-4">
+          {/* Optional Instructions - Always above files */}
+          {proposedFiles.length === 0 && (
+            <div className="w-full overflow-hidden rounded-xl border bg-background shadow-sm">
+              <div className="p-3">
+                <label htmlFor="instructions-with-files" className="text-sm font-medium text-foreground mb-2 block">
+                  Instructions (Optional)
+                </label>
+                <Textarea
+                  id="instructions-with-files"
+                  value={instructions}
+                  onChange={(e) => setInstructions(e.target.value)}
+                  placeholder="Add any special instructions for naming... e.g., 'Use YYYY-MM-DD format for dates' or 'Include project name in all files'"
+                  className="min-h-[80px] resize-none border-none shadow-none focus-visible:ring-0 p-0"
+                  disabled={isProcessing}
+                />
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-2">
               <p className="text-sm text-foreground font-medium">
@@ -471,25 +490,7 @@ export function FileRenamer() {
           </TooltipProvider>
 
           {proposedFiles.length === 0 ? (
-            <>
-              {/* Optional Instructions - visible before generation */}
-              <div className="w-full overflow-hidden rounded-xl border bg-background shadow-sm">
-                <div className="p-3">
-                  <label htmlFor="instructions-upload" className="text-sm font-medium text-foreground mb-2 block">
-                    Instructions (Optional)
-                  </label>
-                  <Textarea
-                    id="instructions-upload"
-                    value={instructions}
-                    onChange={(e) => setInstructions(e.target.value)}
-                    placeholder="Add any special instructions for naming... e.g., 'Use YYYY-MM-DD format for dates' or 'Include project name in all files'"
-                    className="min-h-[80px] resize-none border-none shadow-none focus-visible:ring-0 p-0"
-                    disabled={isProcessing}
-                  />
-                </div>
-              </div>
-
-              <div className="border border-border rounded-lg p-8 text-center bg-card/80 backdrop-blur-sm">
+            <div className="border border-border rounded-lg p-8 text-center bg-card/80 backdrop-blur-sm">
                 <Sparkles className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="font-semibold text-lg text-foreground mb-2">
                   Ready to rename
@@ -546,7 +547,6 @@ export function FileRenamer() {
                   </div>
                 )}
               </div>
-            </>
           ) : (
             <FilePreviewTable
               files={proposedFiles}
